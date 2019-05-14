@@ -1,17 +1,23 @@
 package com.springboot.auth.service;
 
-import com.springboot.auth.entities.AppUser;
+import com.springboot.auth.entities.Privilege;
+import com.springboot.auth.entities.Role;
+import com.springboot.auth.entities.User;
+import com.springboot.auth.repositories.RoleRepository;
+import com.springboot.auth.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -20,34 +26,53 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Autowired
     private BCryptPasswordEncoder encoder;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        // hard coding the users. All passwords must be encoded.
-        final List<AppUser> users = Arrays.asList(
-                new AppUser(1, "user", encoder.encode("password"), "USER"),
-                new AppUser(2, "admin", encoder.encode("password"), "ADMIN")
-        );
+        User user = userRepository.findByUsername(username);
 
-
-        for(AppUser appUser: users) {
-            if(appUser.getUsername().equals(username)) {
-
-                // Remember that Spring needs roles to be in this format: "ROLE_" + userRole (i.e. "ROLE_ADMIN")
-                // So, we need to set it to that format, so we can verify and compare roles (i.e. hasRole("ADMIN")).
-                List<GrantedAuthority> grantedAuthorities = AuthorityUtils
-                        .commaSeparatedStringToAuthorityList("ROLE_" + appUser.getRole());
-
-                // The "User" class is provided by Spring and represents a model class for user to be returned by UserDetailsService
-                // And used by auth manager to verify and check user authentication.
-                return new User(appUser.getUsername(), appUser.getPassword(), grantedAuthorities);
-            }
+        if(user == null)    {
+            return new org.springframework.security.core.userdetails.User(
+                    " ", " ", true, true, true, true,
+                    getAuthorities(Arrays.asList(
+                            roleRepository.findByName("ROLE_USER"))));
         }
-
-        // If user not found. Throw this exception.
-        throw new UsernameNotFoundException("Username: " + username + " not found");
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(), user.getPassword(), user.isEnabled(), true, true,
+                true, getAuthorities(user.getRoles()));
     }
 
-    // A (temporary) class represent the user saved in the database.
+    private List<String> getPrivileges(Collection<Role> roles) {
 
+        List<String> privileges = new ArrayList<>();
+        List<Privilege> collection = new ArrayList<>();
+        for (Role role : roles) {
+            collection.addAll(role.getPrivileges());
+        }
+        for (Privilege item : collection) {
+            privileges.add(item.getName());
+        }
+        return privileges;
+    }
+
+
+    private Collection<? extends GrantedAuthority> getAuthorities(
+            Collection<Role> roles) {
+
+        return getGrantedAuthorities(getPrivileges(roles));
+    }
+
+    private List<GrantedAuthority> getGrantedAuthorities(List<String> privileges) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        for (String privilege : privileges) {
+            authorities.add(new SimpleGrantedAuthority(privilege));
+        }
+        return authorities;
+    }
 }
