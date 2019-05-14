@@ -1,15 +1,15 @@
 package com.springboot.auth.entities;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.ManyToMany;
+import javax.persistence.*;
 import java.util.Collection;
 
 @Getter @Setter
+@Entity
+@NoArgsConstructor
 public class Privilege {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
