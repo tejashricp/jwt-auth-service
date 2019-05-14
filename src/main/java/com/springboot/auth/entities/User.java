@@ -4,14 +4,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
+import javax.persistence.*;
 import java.util.Collection;
 
 @Getter(AccessLevel.PUBLIC)
 @Setter
-public class AppUser {
+@Entity
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -31,7 +30,5 @@ public class AppUser {
             inverseJoinColumns = @JoinColumn(
                     name = "role_id", referencedColumnName = "id"))
     private Collection<Role> roles;
-
-
 
 }
